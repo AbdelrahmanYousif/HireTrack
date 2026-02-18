@@ -196,32 +196,43 @@ function CustomerDashboard({ user, onLogout, adminMode = false, adminCompanyName
   // ── Kanban view ─────────────────────────────────────────────────────────────
   if (view === 'kanban') {
     return (
-      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+        {/* Navbar */}
+        <div style={{
+          backgroundColor: 'white',
+          borderBottom: '1px solid #e5e7eb',
+          padding: '0 32px',
+          height: '56px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+        }}>
+          <div style={{ fontWeight: '800', fontSize: '1.1em', color: '#1a1a2e' }}>🎯 HireTrack</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ fontSize: '0.9em', color: '#6b7280' }}>{customer?.company_name}</span>
+            <span style={{ fontSize: '0.9em', color: '#6b7280' }}>{user.email}</span>
+            <button onClick={onLogout} style={{
+              padding: '6px 14px', backgroundColor: '#f3f4f6',
+              border: '1px solid #e5e7eb', borderRadius: '6px',
+              cursor: 'pointer', fontSize: '0.85em', fontWeight: '500',
+            }}>Logout</button>
+          </div>
+        </div>
         {adminMode && (
           <div style={{
-            backgroundColor: '#fff3cd',
-            border: '1px solid #ffc107',
-            borderRadius: '6px',
-            padding: '10px 16px',
-            marginBottom: '12px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            backgroundColor: '#fffbeb', borderBottom: '1px solid #fcd34d',
+            padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <span>🔧 <strong>Admin mode</strong> — Managing: {adminCompanyName}</span>
+            <span style={{ fontSize: '0.9em' }}>🔧 <strong>Admin mode</strong> — Managing: {adminCompanyName}</span>
             <button onClick={onBackToAdmin} style={{
               padding: '6px 14px', backgroundColor: '#6f42c1', color: 'white',
               border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85em'
             }}>← Back to Admin</button>
           </div>
         )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <div><span style={{ fontWeight: '600', color: '#444' }}>{customer?.company_name}</span></div>
-          <div>
-            <span style={{ marginRight: '20px', color: '#666' }}>{user.email}</span>
-            <button onClick={onLogout} style={{ padding: '8px 16px' }}>Logout</button>
-          </div>
-        </div>
         <KanbanBoard customerId={customer.id} onBack={() => setView('dashboard')} />
       </div>
     )
@@ -229,51 +240,57 @@ function CustomerDashboard({ user, onLogout, adminMode = false, adminCompanyName
 
   // ── Dashboard view ──────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      {/* Navbar */}
+      <div style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '0 32px',
+        height: '56px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}>
+        <div style={{ fontWeight: '800', fontSize: '1.1em', color: '#1a1a2e' }}>🎯 HireTrack</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => setView('kanban')} style={{
+            padding: '6px 14px', backgroundColor: '#6f42c1', color: 'white',
+            border: 'none', borderRadius: '6px', cursor: 'pointer',
+            fontWeight: '600', fontSize: '0.85em',
+          }}>📋 Kanban Board</button>
+          <span style={{ fontSize: '0.9em', color: '#6b7280' }}>{user.email}</span>
+          <button onClick={onLogout} style={{
+            padding: '6px 14px', backgroundColor: '#f3f4f6',
+            border: '1px solid #e5e7eb', borderRadius: '6px',
+            cursor: 'pointer', fontSize: '0.85em', fontWeight: '500',
+          }}>Logout</button>
+        </div>
+      </div>
+
       {adminMode && (
         <div style={{
-          backgroundColor: '#fff3cd',
-          border: '1px solid #ffc107',
-          borderRadius: '6px',
-          padding: '10px 16px',
-          marginBottom: '16px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          backgroundColor: '#fffbeb', borderBottom: '1px solid #fcd34d',
+          padding: '10px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span>🔧 <strong>Admin mode</strong> — Managing: {adminCompanyName}</span>
+          <span style={{ fontSize: '0.9em' }}>🔧 <strong>Admin mode</strong> — Managing: {adminCompanyName}</span>
           <button onClick={onBackToAdmin} style={{
             padding: '6px 14px', backgroundColor: '#6f42c1', color: 'white',
             border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85em'
           }}>← Back to Admin</button>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <div>
-          <h1>Customer Dashboard</h1>
-          <p style={{ color: '#666', marginTop: '5px' }}>{customer?.company_name}</p>
+
+      {/* Page content */}
+      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ margin: '0 0 4px 0', fontSize: '1.6em', fontWeight: '700', color: '#1a1a2e' }}>
+            {customer?.company_name}
+          </h1>
+          <p style={{ margin: 0, color: '#6b7280', fontSize: '0.9em' }}>Customer Dashboard</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Kanban toggle button */}
-          <button
-            onClick={() => setView('kanban')}
-            style={{
-              padding: '8px 18px',
-              backgroundColor: '#6f42c1',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '0.9em',
-            }}
-          >
-            📋 Kanban Board
-          </button>
-          <span style={{ color: '#666' }}>Logged in as: {user.email}</span>
-          <button onClick={onLogout} style={{ padding: '8px 16px' }}>Logout</button>
-        </div>
-      </div>
 
       {message && (
         <div style={{
@@ -463,6 +480,7 @@ function CustomerDashboard({ user, onLogout, adminMode = false, adminCompanyName
             })}
           </div>
         )}
+        </div>
       </div>
     </div>
   )

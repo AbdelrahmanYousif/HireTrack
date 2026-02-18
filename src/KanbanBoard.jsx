@@ -133,8 +133,8 @@ function SortableCard({ candidate }) {
 function KanbanColumn({ stage, candidates, isOver }) {
   return (
     <div style={{
-      flex: '0 0 220px',
-      minWidth: '220px',
+      flex: '0 0 230px',
+      minWidth: '230px',
       backgroundColor: isOver ? '#f0f4ff' : '#f5f5f5',
       borderRadius: '10px',
       padding: '12px',
@@ -349,7 +349,7 @@ function KanbanBoard({ customerId, onBack }) {
   const overStageId = overId ? findStageOfItem(overId) : null
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ padding: '20px 32px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
@@ -417,12 +417,13 @@ function KanbanBoard({ customerId, onBack }) {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div style={{
+      <div style={{
           display: 'flex',
           gap: '12px',
           overflowX: 'auto',
           paddingBottom: '16px',
           alignItems: 'flex-start',
+          minHeight: 'calc(100vh - 160px)',
         }}>
           {STAGES.map(stage => (
             // Each column needs to be a droppable target

@@ -167,16 +167,36 @@ function AdminDashboard({ user, onLogout }) {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-        <h1>Admin Dashboard</h1>
-        <div>
-          <span style={{ marginRight: '20px' }}>Logged in as: {user.email}</span>
-          <button onClick={onLogout} style={{ padding: '8px 16px' }}>Logout</button>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f5f7fa' }}>
+      {/* Navbar */}
+      <div style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '0 32px',
+        height: '56px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}>
+        <div style={{ fontWeight: '800', fontSize: '1.1em', color: '#1a1a2e' }}>🎯 HireTrack</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <span style={{ fontSize: '0.9em', color: '#6b7280' }}>{user.email}</span>
+          <button onClick={onLogout} style={{
+            padding: '6px 14px', backgroundColor: '#f3f4f6',
+            border: '1px solid #e5e7eb', borderRadius: '6px',
+            cursor: 'pointer', fontSize: '0.85em', fontWeight: '500',
+          }}>Logout</button>
         </div>
       </div>
 
-      {message && (
+      {/* Page content */}
+      <div style={{ padding: '32px', maxWidth: '1200px', margin: '0 auto' }}>
+
+        <h1 style={{ margin: '0 0 24px 0', fontSize: '1.6em', fontWeight: '700', color: '#1a1a2e' }}>Admin Dashboard</h1>
+        {message && (
         <div style={{
           padding: '15px',
           marginBottom: '20px',
@@ -186,7 +206,7 @@ function AdminDashboard({ user, onLogout }) {
         }}>
           {message}
         </div>
-      )}
+        )}
 
       <div style={{ marginBottom: '30px' }}>
         <button
@@ -385,6 +405,7 @@ function AdminDashboard({ user, onLogout }) {
             </tbody>
           </table>
         )}
+      </div>
       </div>
     </div>
   )
