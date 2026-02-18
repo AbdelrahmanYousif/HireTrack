@@ -7,21 +7,14 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Get the request data
-    const { email, password, companyName } = await req.json()
+    const body = await req.json()
+    const { action = 'create' } = body
 
-    // Validate input
-    if (!email || !password || !companyName) {
-      throw new Error('Email, password, and company name are required')
-    }
-
-    // Create Supabase Admin client with service role
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -33,7 +26,38 @@ serve(async (req) => {
       }
     )
 
-    // Step 1: Create the user
+    // ── DELETE USER ────────────────────────────────────────────────────────────
+    if (action === 'delete') {
+      const { userId } = body
+
+      if (!userId) throw new Error('userId is required for deletion')
+
+      // Step 1: Delete from Supabase Auth (cascades to profiles via trigger)
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
+      if (deleteError) throw deleteError
+
+      return new Response(
+        JSON.stringify({ success: true, message: 'User deleted successfully' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
+
+    // ── CREATE USER ────────────────────────────────────────────────────────────
+    const { email, password, companyName, role = 'customer' } = body
+
+    if (!email || !password) {
+      throw new Error('Email and password are required')
+    }
+
+    if (role === 'customer' && !companyName) {
+      throw new Error('Company name is required for customer accounts')
+    }
+
+    if (!['customer', 'admin'].includes(role)) {
+      throw new Error('Role must be either "customer" or "admin"')
+    }
+
+    // Step 1: Create the user in Auth
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -42,34 +66,39 @@ serve(async (req) => {
 
     if (userError) throw userError
 
-    // Step 2: Update profile to set role as 'customer'
+    // Step 2: Update profile role
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
-      .update({ role: 'customer' })
+      .update({ role })
       .eq('id', userData.user.id)
 
     if (profileError) throw profileError
 
-    // Step 3: Create customer record
-    const { data: customerData, error: customerError } = await supabaseAdmin
-      .from('customers')
-      .insert({
-        user_id: userData.user.id,
-        company_name: companyName,
-      })
-      .select()
-      .single()
+    // Step 3: If customer, create customer record
+    let customerData = null
+    if (role === 'customer') {
+      const { data, error: customerError } = await supabaseAdmin
+        .from('customers')
+        .insert({
+          user_id: userData.user.id,
+          company_name: companyName,
+        })
+        .select()
+        .single()
 
-    if (customerError) throw customerError
+      if (customerError) throw customerError
+      customerData = data
+    }
 
-    // Return success
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
+        role,
         customer: customerData,
-        message: 'Customer created successfully'
+        user: { id: userData.user.id, email: userData.user.email },
+        message: `${role === 'admin' ? 'Admin' : 'Customer'} account created successfully`,
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
@@ -77,14 +106,8 @@ serve(async (req) => {
 
   } catch (error) {
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }
 })

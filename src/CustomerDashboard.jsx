@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
 import KanbanBoard from './KanbanBoard'
 
-function CustomerDashboard({ user, onLogout }) {
+function CustomerDashboard({ user, onLogout, adminMode = false, adminCompanyName = '', onBackToAdmin = null }) {
   const [customer, setCustomer] = useState(null)
   const [jobs, setJobs] = useState([])
   const [candidates, setCandidates] = useState([])
@@ -10,7 +10,7 @@ function CustomerDashboard({ user, onLogout }) {
   const [showJobForm, setShowJobForm] = useState(false)
   const [showCandidateForm, setShowCandidateForm] = useState(false)
   const [selectedJobId, setSelectedJobId] = useState(null)
-  const [view, setView] = useState('dashboard') // 'dashboard' | 'kanban'
+  const [view, setView] = useState('dashboard')
 
   // Job form state
   const [jobTitle, setJobTitle] = useState('')
@@ -137,17 +137,86 @@ function CustomerDashboard({ user, onLogout }) {
 
   const getCandidatesForJob = (jobId) => candidates.filter(c => c.job_id === jobId)
 
+  const handleDeleteJob = async (job) => {
+    const confirmed = window.confirm(
+      `Delete "${job.title}"?\n\nThis will also delete all candidates for this job. This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    try {
+      // Get candidates for this job
+      const { data: jobCandidates } = await supabase
+        .from('candidates')
+        .select('id')
+        .eq('job_id', job.id)
+
+      // Delete their stages first
+      if (jobCandidates?.length > 0) {
+        await supabase
+          .from('candidate_stages')
+          .delete()
+          .in('candidate_id', jobCandidates.map(c => c.id))
+      }
+
+      // Delete candidates
+      await supabase.from('candidates').delete().eq('job_id', job.id)
+
+      // Delete job
+      const { error } = await supabase.from('jobs').delete().eq('id', job.id)
+      if (error) throw error
+
+      setMessage(`Job "${job.title}" deleted successfully.`)
+      fetchCustomerData()
+    } catch (error) {
+      setMessage('Error deleting job: ' + error.message)
+    }
+  }
+
+  const handleDeleteCandidate = async (candidate) => {
+    const confirmed = window.confirm(`Delete candidate "${candidate.name}"? This cannot be undone.`)
+    if (!confirmed) return
+
+    try {
+      // Delete stage first
+      await supabase.from('candidate_stages').delete().eq('candidate_id', candidate.id)
+
+      // Delete candidate
+      const { error } = await supabase.from('candidates').delete().eq('id', candidate.id)
+      if (error) throw error
+
+      setMessage(`Candidate "${candidate.name}" deleted successfully.`)
+      fetchCustomerData()
+    } catch (error) {
+      setMessage('Error deleting candidate: ' + error.message)
+    }
+  }
+
   if (loading) return <div style={{ padding: '20px' }}>Loading...</div>
 
   // ── Kanban view ─────────────────────────────────────────────────────────────
   if (view === 'kanban') {
     return (
       <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Top bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-          <div>
-            <span style={{ fontWeight: '600', color: '#444' }}>{customer?.company_name}</span>
+        {adminMode && (
+          <div style={{
+            backgroundColor: '#fff3cd',
+            border: '1px solid #ffc107',
+            borderRadius: '6px',
+            padding: '10px 16px',
+            marginBottom: '12px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <span>🔧 <strong>Admin mode</strong> — Managing: {adminCompanyName}</span>
+            <button onClick={onBackToAdmin} style={{
+              padding: '6px 14px', backgroundColor: '#6f42c1', color: 'white',
+              border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85em'
+            }}>← Back to Admin</button>
           </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <div><span style={{ fontWeight: '600', color: '#444' }}>{customer?.company_name}</span></div>
           <div>
             <span style={{ marginRight: '20px', color: '#666' }}>{user.email}</span>
             <button onClick={onLogout} style={{ padding: '8px 16px' }}>Logout</button>
@@ -161,6 +230,24 @@ function CustomerDashboard({ user, onLogout }) {
   // ── Dashboard view ──────────────────────────────────────────────────────────
   return (
     <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      {adminMode && (
+        <div style={{
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '6px',
+          padding: '10px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}>
+          <span>🔧 <strong>Admin mode</strong> — Managing: {adminCompanyName}</span>
+          <button onClick={onBackToAdmin} style={{
+            padding: '6px 14px', backgroundColor: '#6f42c1', color: 'white',
+            border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85em'
+          }}>← Back to Admin</button>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <div>
           <h1>Customer Dashboard</h1>
@@ -331,6 +418,12 @@ function CustomerDashboard({ user, onLogout }) {
                       >
                         + Add Candidate
                       </button>
+                      <button
+                        onClick={() => handleDeleteJob(job)}
+                        style={{ padding: '7px 14px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
                   </div>
 
@@ -349,9 +442,17 @@ function CustomerDashboard({ user, onLogout }) {
                                 )}
                               </div>
                             </div>
-                            <span style={{ padding: '4px 12px', backgroundColor: '#e3f2fd', color: '#1976d2', borderRadius: '12px', fontSize: '0.85em', fontWeight: '600' }}>
-                              {candidate.candidate_stages?.[0]?.stage || 'applied'}
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ padding: '4px 12px', backgroundColor: '#e3f2fd', color: '#1976d2', borderRadius: '12px', fontSize: '0.85em', fontWeight: '600' }}>
+                                {candidate.candidate_stages?.[0]?.stage || 'applied'}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteCandidate(candidate)}
+                                style={{ padding: '4px 10px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8em' }}
+                              >
+                                🗑️
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>

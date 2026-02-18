@@ -198,6 +198,7 @@ function KanbanBoard({ customerId, onBack }) {
   const [loading, setLoading] = useState(true)
   const [activeCandidate, setActiveCandidate] = useState(null)
   const [overId, setOverId] = useState(null)
+  const [notePopup, setNotePopup] = useState(null) // { candidateId, fromStage, toStage }
 
   // Filters
   const [selectedJobId, setSelectedJobId] = useState('all')
@@ -313,17 +314,24 @@ function KanbanBoard({ customerId, onBack }) {
       prev.map(c => c.id === active.id ? { ...c, currentStage: overStage } : c)
     )
 
-    // Persist to Supabase
+    // Show note popup before saving
+    setNotePopup({ candidateId: active.id, fromStage: activeStage, toStage: overStage })
+  }
+
+  const handleNoteSubmit = async (note) => {
+    const { candidateId, fromStage, toStage } = notePopup
+    setNotePopup(null)
+
     const { error } = await supabase
       .from('candidate_stages')
-      .update({ stage: overStage })
-      .eq('candidate_id', active.id)
+      .update({ stage: toStage, note: note || null })
+      .eq('candidate_id', candidateId)
 
     if (error) {
       console.error('Failed to update stage:', error)
       // Revert on failure
       setCandidates(prev =>
-        prev.map(c => c.id === active.id ? { ...c, currentStage: activeStage } : c)
+        prev.map(c => c.id === candidateId ? { ...c, currentStage: fromStage } : c)
       )
     }
   }
@@ -443,11 +451,85 @@ function KanbanBoard({ customerId, onBack }) {
             : 'No candidates match your current filters.'}
         </div>
       )}
+
+      {/* Stage note popup */}
+      {notePopup && (
+        <NotePopup
+          fromStage={STAGE_MAP[notePopup.fromStage]?.label}
+          toStage={STAGE_MAP[notePopup.toStage]?.label}
+          toStageColor={STAGE_MAP[notePopup.toStage]?.color}
+          onSubmit={handleNoteSubmit}
+        />
+      )}
     </div>
   )
 }
 
-// ─── DroppableColumn wraps KanbanColumn and handles drop target via useDroppable ──
+// ─── Note Popup ──────────────────────────────────────────────────────────────
+
+function NotePopup({ fromStage, toStage, toStageColor, onSubmit }) {
+  const [note, setNote] = useState('')
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      zIndex: 1000,
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '12px',
+        padding: '28px',
+        width: '420px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+      }}>
+        <h3 style={{ margin: '0 0 8px 0', fontSize: '1.1em' }}>Stage Changed</h3>
+        <p style={{ color: '#666', fontSize: '0.9em', margin: '0 0 20px 0' }}>
+          Moved from <strong>{fromStage}</strong> → <strong style={{ color: toStageColor }}>{toStage}</strong>
+        </p>
+        <label style={{ display: 'block', marginBottom: '8px', fontWeight: '600', fontSize: '0.9em' }}>
+          Add a note <span style={{ fontWeight: 'normal', color: '#999' }}>(optional)</span>
+        </label>
+        <textarea
+          value={note}
+          onChange={e => setNote(e.target.value)}
+          placeholder={`e.g. "Strong technical skills, moving to ${toStage}"`}
+          rows={3}
+          autoFocus
+          style={{
+            width: '100%', padding: '10px', borderRadius: '6px',
+            border: '1px solid #ddd', fontSize: '0.9em',
+            boxSizing: 'border-box', resize: 'vertical',
+          }}
+        />
+        <div style={{ display: 'flex', gap: '10px', marginTop: '16px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => onSubmit('')}
+            style={{
+              padding: '8px 18px', backgroundColor: '#f0f0f0',
+              border: 'none', borderRadius: '6px', cursor: 'pointer',
+            }}
+          >
+            Skip
+          </button>
+          <button
+            onClick={() => onSubmit(note)}
+            style={{
+              padding: '8px 18px', backgroundColor: toStageColor,
+              color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer',
+              fontWeight: '600',
+            }}
+          >
+            Save Note
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── DroppableColumn ─────────────────────────────────────────────────────────
 
 import { useDroppable } from '@dnd-kit/core'
 
